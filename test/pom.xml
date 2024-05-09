@@ -142,7 +142,8 @@ THE SOFTWARE.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jenkins-test-harness</artifactId>
-      <version>2199.v5c2ef8ce998f</version>
+      <!-- TODO https://ci.jenkins.io/job/Core/job/jenkins-test-harness/job/prototype/ -->
+      <version>2201.v690608f463f4</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>

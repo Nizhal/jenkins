@@ -39,7 +39,8 @@ THE SOFTWARE.
 
   <properties>
     <slf4jVersion>2.0.13</slf4jVersion>
-    <stapler.version>1850.v191b_f2fee423</stapler.version>
+    <!-- TODO https://ci.jenkins.io/job/Core/job/stapler/job/prototype/ -->
+    <stapler.version>1858.v04b_c30572223</stapler.version>
     <groovy.version>2.4.21</groovy.version>
   </properties>
 

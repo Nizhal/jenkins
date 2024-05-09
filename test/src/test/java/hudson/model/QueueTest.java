@@ -114,10 +114,10 @@ import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee8.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.servlet.ServletHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.Page;
 import org.htmlunit.ScriptResult;
@@ -329,9 +329,9 @@ public class QueueTest {
         ServerConnector connector = new ServerConnector(server);
         server.addConnector(connector);
 
-        ServletHandler handler = new ServletHandler();
-        handler.addServletWithMapping(new ServletHolder(new FileItemPersistenceTestServlet()), "/");
-        server.setHandler(handler);
+        ServletContextHandler context = new ServletContextHandler();
+        context.getServletHandler().addServletWithMapping(new ServletHolder(new FileItemPersistenceTestServlet()), "/");
+        server.setHandler(context);
 
         server.start();
 
