@@ -24,22 +24,28 @@
 
 package hudson.util;
 
+import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import java.io.File;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.fileupload.FileCountLimitExceededException;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadBase;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.DiskFileItem;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.FileUploadByteCountLimitException;
+import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.core.FileUploadFileCountLimitException;
+import org.apache.commons.fileupload2.core.FileUploadSizeException;
+import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletDiskFileUpload;
+import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletFileUpload;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Wraps commons file-upload and handles a "multipart/form-data" form submission
@@ -52,7 +58,7 @@ public class MultipartFormDataParser implements AutoCloseable {
 
     /**
      * Limits the number of form fields that can be processed in one multipart/form-data request.
-     * Used to set {@link org.apache.commons.fileupload.servlet.ServletFileUpload#setFileCountMax(long)}.
+     * Used to set {@link org.apache.commons.fileupload2.jakarta.JakartaServletFileUpload#setFileCountMax(long)}.
      * Despite the name, this applies to all form fields, not just actual file attachments.
      * Set to {@code -1} to disable limits.
      */
@@ -60,7 +66,7 @@ public class MultipartFormDataParser implements AutoCloseable {
 
     /**
      * Limits the size (in bytes) of individual fields that can be processed in one multipart/form-data request.
-     * Used to set {@link org.apache.commons.fileupload.servlet.ServletFileUpload#setFileSizeMax(long)}.
+     * Used to set {@link org.apache.commons.fileupload2.jakarta.JakartaServletFileUpload#setFileSizeMax(long)}.
      * Despite the name, this applies to all form fields, not just actual file attachments.
      * Set to {@code -1} to disable limits.
      */
@@ -68,34 +74,34 @@ public class MultipartFormDataParser implements AutoCloseable {
 
     /**
      * Limits the total request size (in bytes) that can be processed in one multipart/form-data request.
-     * Used to set {@link org.apache.commons.fileupload.servlet.ServletFileUpload#setSizeMax(long)}.
+     * Used to set {@link org.apache.commons.fileupload2.jakarta.JakartaServletFileUpload#setSizeMax(long)}.
      * Set to {@code -1} to disable limits.
      */
     private static /* nonfinal for Jenkins script console */ long FILEUPLOAD_MAX_SIZE = Long.getLong(MultipartFormDataParser.class.getName() + ".FILEUPLOAD_MAX_SIZE", -1);
 
     @Restricted(NoExternalUse.class)
     public MultipartFormDataParser(HttpServletRequest request, int maxParts, long maxPartSize, long maxSize) throws ServletException {
-        File tmpDir;
+        Path tmpDir;
         try {
-            tmpDir = Files.createTempDirectory("jenkins-multipart-uploads").toFile();
+            tmpDir = Files.createTempDirectory("jenkins-multipart-uploads");
         } catch (IOException e) {
             throw new ServletException("Error creating temporary directory", e);
         }
-        tmpDir.deleteOnExit();
-        ServletFileUpload upload = new ServletFileUpload(new DiskFileItemFactory(DiskFileItemFactory.DEFAULT_SIZE_THRESHOLD, tmpDir));
+        tmpDir.toFile().deleteOnExit();
+        JakartaServletFileUpload<DiskFileItem, DiskFileItemFactory> upload = new JakartaServletDiskFileUpload(DiskFileItemFactory.builder().setPath(tmpDir).get());
         upload.setFileCountMax(maxParts);
         upload.setFileSizeMax(maxPartSize);
         upload.setSizeMax(maxSize);
         try {
             for (FileItem fi : upload.parseRequest(request))
                 byName.put(fi.getFieldName(), fi);
-        } catch (FileCountLimitExceededException e) {
+        } catch (FileUploadFileCountLimitException e) {
             throw new ServletException("File upload field count limit exceeded. Consider setting the Java system property "
                     + MultipartFormDataParser.class.getName() + ".FILEUPLOAD_MAX_FILES to a value greater than " + FILEUPLOAD_MAX_FILES + ", or to -1 to disable this limit.", e);
-        } catch (FileUploadBase.FileSizeLimitExceededException e) {
+        } catch (FileUploadByteCountLimitException e) {
             throw new ServletException("File upload field size limit exceeded. Consider setting the Java system property "
                     + MultipartFormDataParser.class.getName() + ".FILEUPLOAD_MAX_FILE_SIZE to a value greater than " + FILEUPLOAD_MAX_FILE_SIZE + ", or to -1 to disable this limit.", e);
-        } catch (FileUploadBase.SizeLimitExceededException e) {
+        } catch (FileUploadSizeException e) {
             throw new ServletException("File upload total size limit exceeded. Consider setting the Java system property "
                     + MultipartFormDataParser.class.getName() + ".FILEUPLOAD_MAX_SIZE to a value greater than " + FILEUPLOAD_MAX_SIZE + ", or to -1 to disable this limit.", e);
         } catch (FileUploadException e) {
@@ -112,14 +118,31 @@ public class MultipartFormDataParser implements AutoCloseable {
         this(request, FILEUPLOAD_MAX_FILES, FILEUPLOAD_MAX_FILE_SIZE, FILEUPLOAD_MAX_SIZE);
     }
 
+    public MultipartFormDataParser(StaplerRequest request) throws ServletException {
+        this((HttpServletRequest) request);
+    }
+
+    /**
+     * @deprecated use {@link #MultipartFormDataParser(HttpServletRequest)}
+     */
+    @Deprecated
+    public MultipartFormDataParser(javax.servlet.http.HttpServletRequest request) throws ServletException {
+        this(request.toJakartaHttpServletRequest(), FILEUPLOAD_MAX_FILES, FILEUPLOAD_MAX_FILE_SIZE, FILEUPLOAD_MAX_SIZE);
+    }
+
     public String get(String key) {
         FileItem fi = byName.get(key);
         if (fi == null)    return null;
         return fi.getString();
     }
 
+    @WithBridgeMethods(value = org.apache.commons.fileupload.FileItem.class, adapterMethod = "fromFileUpload2FileItem")
     public FileItem getFileItem(String key) {
         return byName.get(key);
+    }
+
+    private Object fromFileUpload2FileItem(FileItem fileItem, Class<?> type) {
+        return org.apache.commons.fileupload.FileItem.fromFileUpload2FileItem(fileItem);
     }
 
     /**
@@ -127,8 +150,13 @@ public class MultipartFormDataParser implements AutoCloseable {
      * Even if this method is not called, the resource will be still cleaned up later by GC.
      */
     public void cleanUp() {
-        for (FileItem item : byName.values())
-            item.delete();
+        for (FileItem item : byName.values()) {
+            try {
+                item.delete();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
     }
 
     /** Alias for {@link #cleanUp}. */

@@ -95,6 +95,10 @@ import hudson.util.jna.GNUCLibrary;
 import hudson.views.MyViewsTabBar;
 import hudson.views.ViewsTabBar;
 import hudson.widgets.RenderOnDemandClosure;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -148,10 +152,6 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.console.ConsoleUrlProvider;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.GlobalConfigurationCategory;
@@ -605,10 +605,34 @@ public class Functions {
         return null;
     }
 
+    public static Cookie getCookie(StaplerRequest req, String name) {
+        return getCookie((HttpServletRequest) req, name);
+    }
+
+    /**
+     * @deprecated use {@link #getCookie(HttpServletRequest, String)}
+     */
+    @Deprecated
+    public static javax.servlet.http.Cookie getCookie(javax.servlet.http.HttpServletRequest req, String name) {
+        return javax.servlet.http.Cookie.fromJakartaServletHttpCookie(getCookie(req.toJakartaHttpServletRequest(), name));
+    }
+
     public static String getCookie(HttpServletRequest req, String name, String defaultValue) {
         Cookie c = getCookie(req, name);
         if (c == null || c.getValue() == null) return defaultValue;
         return c.getValue();
+    }
+
+    public static String getCookie(StaplerRequest req, String name, String defaultValue) {
+        return getCookie((HttpServletRequest) req, name, defaultValue);
+    }
+
+    /**
+     * @deprecated use {@link #getCookie(HttpServletRequest, String, String)}
+     */
+    @Deprecated
+    public static String getCookie(javax.servlet.http.HttpServletRequest req, String name, String defaultValue) {
+        return getCookie(req.toJakartaHttpServletRequest(), name, defaultValue);
     }
 
     private static final Pattern ICON_SIZE = Pattern.compile("\\d+x\\d+");
@@ -2369,6 +2393,7 @@ public class Functions {
      * Advertises the minimum set of HTTP headers that assist programmatic
      * discovery of Jenkins.
      */
+    @SuppressFBWarnings(value = "UC_USELESS_VOID_METHOD", justification = "TODO needs triage")
     public static void advertiseHeaders(HttpServletResponse rsp) {
         Jenkins j = Jenkins.getInstanceOrNull();
         if (j != null) {

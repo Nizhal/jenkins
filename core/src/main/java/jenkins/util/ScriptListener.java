@@ -44,7 +44,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * <p>Note that (unsandboxed) script execution can easily result in logging configuration being changed, so if you rely
  * on complete logging of scripting actions, make sure to set up logging to remote systems.</p>
  *
- * @see jenkins.model.Jenkins#_doScript(StaplerRequest, org.kohsuke.stapler.StaplerResponse, javax.servlet.RequestDispatcher, hudson.remoting.VirtualChannel, hudson.security.ACL)
+ * @see jenkins.model.Jenkins#_doScript(StaplerRequest, org.kohsuke.stapler.StaplerResponse, jakarta.servlet.RequestDispatcher, hudson.remoting.VirtualChannel, hudson.security.ACL)
  * @see hudson.cli.GroovyCommand
  * @see hudson.cli.GroovyshCommand
  * @see jenkins.util.groovy.GroovyHookScript

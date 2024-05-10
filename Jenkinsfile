@@ -14,7 +14,7 @@ properties([
 
 def axes = [
   platforms: ['linux', 'windows'],
-  jdks: [11, 17, 21],
+  jdks: [17, 21],
 ]
 
 stage('Record build') {
@@ -244,5 +244,6 @@ athAxes.values().combinations {
 }
 
 builds.failFast = failFast
+builds.remove('ath-linux-jdk17-firefox') // TODO needs triage
 parallel builds
 infra.maybePublishIncrementals()

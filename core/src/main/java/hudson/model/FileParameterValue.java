@@ -24,6 +24,7 @@
 
 package hudson.model;
 
+import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -36,15 +37,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.regex.Pattern;
 import jenkins.util.SystemProperties;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemHeaders;
-import org.apache.commons.fileupload.disk.DiskFileItem;
-import org.apache.commons.fileupload.util.FileItemHeadersImpl;
+import org.apache.commons.fileupload2.core.DiskFileItem;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.FileItemFactory;
+import org.apache.commons.fileupload2.core.FileItemHeaders;
+import org.apache.commons.fileupload2.core.FileItemHeadersProvider;
 import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -146,8 +148,13 @@ public class FileParameterValue extends ParameterValue {
         return originalFileName;
     }
 
+    @WithBridgeMethods(value = org.apache.commons.fileupload.FileItem.class, adapterMethod = "fromFileUpload2FileItem")
     public FileItem getFile() {
         return file;
+    }
+
+    private Object fromFileUpload2FileItem(FileItem fileItem, Class<?> type) {
+        return org.apache.commons.fileupload.FileItem.fromFileUpload2FileItem(fileItem);
     }
 
     @Override
@@ -294,8 +301,8 @@ public class FileParameterValue extends ParameterValue {
         }
 
         @Override
-        public String getString(String encoding) throws UnsupportedEncodingException {
-            return new String(get(), encoding);
+        public String getString(Charset toCharset) throws IOException {
+            return new String(get(), toCharset);
         }
 
         @Override
@@ -304,17 +311,19 @@ public class FileParameterValue extends ParameterValue {
         }
 
         @Override
-        public void write(File to) throws Exception {
-            new FilePath(file).copyTo(new FilePath(to));
+        public FileItem write(Path to) throws IOException {
+            try {
+                new FilePath(file).copyTo(new FilePath(to.toFile()));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return this;
         }
 
         @Override
-        public void delete() {
-            try {
-                Files.deleteIfExists(file.toPath());
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+        public FileItem delete() throws IOException {
+            Files.deleteIfExists(Util.fileToPath(file));
+            return this;
         }
 
         @Override
@@ -323,7 +332,8 @@ public class FileParameterValue extends ParameterValue {
         }
 
         @Override
-        public void setFieldName(String name) {
+        public FileItem setFieldName(String name) {
+            return this;
         }
 
         @Override
@@ -332,7 +342,8 @@ public class FileParameterValue extends ParameterValue {
         }
 
         @Override
-        public void setFormField(boolean state) {
+        public FileItem setFormField(boolean state) {
+            return this;
         }
 
         @Override
@@ -343,11 +354,12 @@ public class FileParameterValue extends ParameterValue {
 
         @Override
         public FileItemHeaders getHeaders() {
-            return new FileItemHeadersImpl();
+            return FileItemFactory.AbstractFileItemBuilder.newFileItemHeaders();
         }
 
         @Override
-        public void setHeaders(FileItemHeaders headers) {
+        public FileItemHeadersProvider setHeaders(FileItemHeaders headers) {
+            return this;
         }
     }
 }

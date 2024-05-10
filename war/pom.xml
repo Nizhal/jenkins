@@ -85,7 +85,7 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
-      <artifactId>websocket-jetty10</artifactId>
+      <artifactId>websocket-jetty12-ee9</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -576,14 +576,14 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-maven-plugin</artifactId>
-        <version>10.0.20</version>
+        <groupId>org.eclipse.jetty.ee9</groupId>
+        <artifactId>jetty-ee9-maven-plugin</artifactId>
+        <version>12.0.9</version>
         <configuration>
           <!--
             Reload webapp when you hit ENTER. (See JETTY-282 for more)
           -->
-          <reload>manual</reload>
+          <scan>0</scan>
           <httpConnector>
             <host>${host}</host>
             <port>${port}</port>
@@ -591,7 +591,9 @@ THE SOFTWARE.
           <loginServices>
             <loginService implementation="org.eclipse.jetty.security.HashLoginService">
               <name>default</name>
-              <config>${basedir}/src/realm.properties</config>
+              <config implementation="org.eclipse.jetty.maven.MavenResource">
+                <resourceAsString>${basedir}/src/realm.properties</resourceAsString>
+              </config>
             </loginService>
           </loginServices>
           <systemProperties>

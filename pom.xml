@@ -52,7 +52,7 @@ THE SOFTWARE.
   <modules>
     <module>bom</module>
     <module>websocket/spi</module>
-    <module>websocket/jetty10</module>
+    <module>websocket/jetty12-ee9</module>
     <module>core</module>
     <module>war</module>
     <module>test</module>
@@ -99,7 +99,10 @@ THE SOFTWARE.
     <bridge-method-injector.version>1.29</bridge-method-injector.version>
     <spotless.check.skip>false</spotless.check.skip>
     <!-- Make sure to keep the jetty-maven-plugin version in war/pom.xml in sync with the Jetty release in Winstone: -->
-    <winstone.version>6.19</winstone.version>
+    <!-- TODO https://ci.jenkins.io/job/Core/job/winstone/job/jakarta/ -->
+    <winstone.version>7.0-rc902.c2b_1491cec55</winstone.version>
+    <!-- TODO until in parent POM -->
+    <maven.compiler.release>17</maven.compiler.release>
   </properties>
 
   <!--
